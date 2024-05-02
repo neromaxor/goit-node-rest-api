@@ -2,11 +2,12 @@ import * as fs from "node:fs/promises";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 import path from "path";
+import { readFile, writeFile } from "node:fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const contactsPath = path.resolve(__dirname, "path/to/contacts.json");
+const contactsPath = path.resolve(__dirname, "../db/contacts.json");
 
 export async function listContacts() {
   try {
@@ -56,6 +57,28 @@ export async function addContact(name, email, phone) {
     return newContact;
   } catch (error) {
     console.error("Error adding contact:", error);
+    return null;
+  }
+}
+
+export async function updateContact(id, newData) {
+  try {
+    const data = await readFile(contactsPath, "utf-8");
+    const contacts = JSON.parse(data);
+    const index = contacts.findIndex((contact) => contact.id === id);
+
+    if (index === -1) {
+      return null;
+    }
+
+    const updatedContact = { ...contacts[index], ...newData };
+    contacts[index] = updatedContact;
+
+    await writeFile(contactsPath, JSON.stringify(contacts, null, 2));
+
+    return updatedContact;
+  } catch (error) {
+    console.error("Error updating contact:", error);
     return null;
   }
 }
