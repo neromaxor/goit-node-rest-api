@@ -1,19 +1,29 @@
-import ContactModel from "../contactModel/contactModel.js"; // Додайте імпорт моделі
+import Contact from "../models/contact.js";
+import { Types } from "mongoose";
+import {
+  createContactSchema,
+  updateContactSchema,
+} from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res) => {
   try {
-    const contacts = await ContactModel.find(); // Використовуйте модель для отримання контактів
+    const contacts = await Contact.find();
     res.status(200).json(contacts);
   } catch (error) {
     console.error("Error getting all contacts:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 export const getOneContact = async (req, res) => {
+  const { id } = req.params;
+
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid _id" });
+  }
+
   try {
-    const { id } = req.params;
-    const contact = await ContactModel.findById(id); // Використовуйте модель для отримання контакту за id
+    const contact = await Contact.findById(id);
+
     if (contact) {
       res.status(200).json(contact);
     } else {
@@ -21,6 +31,7 @@ export const getOneContact = async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching contact by id:", error);
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -28,43 +39,107 @@ export const getOneContact = async (req, res) => {
 export const deleteContact = async (req, res) => {
   const { id } = req.params;
   try {
-    const contact = await ContactModel.findByIdAndRemove(id); // Використовуйте модель для видалення контакту за id
+    const contact = await Contact.findByIdAndRemove(id);
     if (contact) {
       res.status(200).json(contact);
     } else {
       res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.error("Error deleting contact:", error);
+    console.log(("Error delete contact by id:", error));
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 export const createContact = async (req, res) => {
+  const contact = {
+    name: req.body.name,
+    email: req.body.email,
+    phone: req.body.phone,
+    favorite: req.body.favorite,
+  };
+
   try {
-    const { name, email, phone } = req.body;
-    const newContact = await ContactModel.create({ name, email, phone }); // Використовуйте модель для створення нового контакту
-    res.status(201).json(newContact);
+    const { error } = createContactSchema.validate(req.body);
+
+    if (error) {
+      res.status(400).json({ message: error.message });
+    }
+    const result = await Contact.create(contact);
+
+    if (result) {
+      res.status(201).json(result);
+    } else {
+      res.status(500).json("Failed to add contact");
+    }
   } catch (error) {
     console.error("Error creating contact:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
+  }
+};
+export const updateContact = async (req, res) => {
+  const { id } = req.params;
+
+  const contact = {
+    name: req.body.name,
+    email: req.body.email,
+    phone: req.body.phone,
+    favorite: req.body.favorite,
+  };
+
+  try {
+    const { name, email, phone, favorite } = req.body;
+
+    if (!name & !email & !phone & !favorite) {
+      res.status(400).json("Body must have at least one field");
+    }
+
+    const { error } = updateContactSchema.validate(req.body);
+    if (error) {
+      res.status(400, error.message);
+    }
+
+    const updatedContact = await Contact.findByIdAndUpdate(id, contact, {
+      new: true,
+    });
+
+    if (!updatedContact) {
+      res.status(404).json({ message: "Contact not found" });
+    }
+
+    res.status(200).json(updatedContact);
+  } catch (error) {
+    console.error("Error updating contact:", error);
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
 
-export const updateContact = async (req, res) => {
+export const updateStatusContact = async (req, res) => {
+  const { contactId } = req.params;
+  const { favorite } = req.body;
+
   try {
-    const { id } = req.params;
-    const newData = req.body;
-    const updatedContact = await ContactModel.findByIdAndUpdate(id, newData, {
-      new: true,
-    }); // Використовуйте модель для оновлення контакту за id
+    if (!favorite) {
+      return res.status(400).json({ message: "Field favorite is required" });
+    }
+    const updatedContact = await Contact.findByIdAndUpdate(
+      contactId,
+      { favorite: favorite },
+      { new: true }
+    );
+
     if (updatedContact) {
       res.status(200).json(updatedContact);
     } else {
-      res.status(404).json({ message: "Contact not found" });
+      res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.error("Error updating contact:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error updating contact status:", error);
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
