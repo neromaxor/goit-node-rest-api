@@ -1,12 +1,9 @@
-import Contact from "../models/contact.js";
-import mongoose from "mongoose";
 import {
-  updateContactSchema,
   createContactSchema,
-  updateStatusContactSchema,
+  updateContactSchema,
 } from "../schemas/contactsSchemas.js";
-
-const { Types } = mongoose;
+import Contact from "../models/contact.js";
+import { Types } from "mongoose";
 
 export const getAllContacts = async (req, res) => {
   try {
@@ -35,21 +32,23 @@ export const getOneContact = async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching contact by id:", error);
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const deleteContact = async (req, res) => {
-  const { id } = req.params;
   try {
-    const contact = await Contact.findByIdAndRemove(id);
+    const { id } = req.params;
+    const contact = await Contact.findByIdAndDelete(id);
+
     if (contact) {
-      res.status(200).json(contact);
+      res.status(200).json({ contact });
     } else {
       res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.log("Error delete contact by id:", error);
+    console.log(("Error delete contact by id:", error));
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -66,7 +65,7 @@ export const createContact = async (req, res) => {
     const { error } = createContactSchema.validate(req.body);
 
     if (error) {
-      return res.status(400).json({ message: error.message });
+      res.status(400).json({ message: error.message });
     }
     const result = await Contact.create(contact);
 
@@ -77,7 +76,9 @@ export const createContact = async (req, res) => {
     }
   } catch (error) {
     console.error("Error creating contact:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
 
@@ -94,29 +95,29 @@ export const updateContact = async (req, res) => {
   try {
     const { name, email, phone, favorite } = req.body;
 
-    if (!name && !email && !phone && !favorite) {
-      return res
-        .status(400)
-        .json({ message: "Body must have at least one field" });
+    if (!name & !email & !phone & !favorite) {
+      res.status(400).json("Body must have at least one field");
     }
 
     const { error } = updateContactSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ message: error.message });
+      res.status(400, error.message);
     }
 
-    const updatedContact = await ContactModel.findByIdAndUpdate(id, contact, {
+    const updatedContact = await Contact.findByIdAndUpdate(id, contact, {
       new: true,
     });
 
     if (!updatedContact) {
-      return res.status(404).json({ message: "Contact not found" });
+      res.status(404).json({ message: "Contact not found" });
     }
 
     res.status(200).json(updatedContact);
   } catch (error) {
     console.error("Error updating contact:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
 
@@ -124,16 +125,13 @@ export const updateStatusContact = async (req, res) => {
   const { contactId } = req.params;
   const { favorite } = req.body;
 
-  // Валідація наявності та правильності типу поля favorite
-  const { error } = updateStatusContactSchema.validate({ favorite });
-  if (error) {
-    return res.status(400).json({ message: error.message });
-  }
-
   try {
+    if (!favorite) {
+      return res.status(400).json({ message: "Field favorite is required" });
+    }
     const updatedContact = await Contact.findByIdAndUpdate(
       contactId,
-      { favorite },
+      { favorite: favorite },
       { new: true }
     );
 
@@ -144,6 +142,8 @@ export const updateStatusContact = async (req, res) => {
     }
   } catch (error) {
     console.error("Error updating contact status:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res
+      .status(error.status || 500)
+      .json({ message: error.message || "Internal server error" });
   }
 };
