@@ -13,3 +13,10 @@ export const updateContactSchema = Joi.object({
   phone: Joi.string().optional(),
   favorite: Joi.boolean(),
 });
+
+export const updateStatusContactSchema = Joi.object({
+  favorite: Joi.boolean().required().messages({
+    "any.required": "Field favorite is required",
+    "boolean.base": "Field favorite must be a boolean",
+  }),
+});
