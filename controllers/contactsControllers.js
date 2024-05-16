@@ -1,6 +1,7 @@
 import {
   createContactSchema,
   updateContactSchema,
+  updateStatusContactSchema,
 } from "../schemas/contactsSchemas.js";
 import Contact from "../models/contact.js";
 import { Types } from "mongoose";
@@ -126,25 +127,25 @@ export const updateStatusContact = async (req, res) => {
   const { contactId } = req.params;
   const { favorite } = req.body;
 
+  const { error } = updateStatusContactSchema.validate({ favorite });
+  if (error) {
+    return res.status(400).json({ message: error.message });
+  }
+
   try {
-    if (!favorite) {
-      return res.status(400).json({});
-    }
     const updatedContact = await Contact.findByIdAndUpdate(
       contactId,
-      { favorite: favorite },
+      { favorite },
       { new: true }
     );
 
-    if (updatedContact) {
-      res.status(200).json(updatedContact);
-    } else {
-      res.status(404).json({ message: "Not found" });
+    if (!updatedContact) {
+      return res.status(404).json({ message: "Not found" });
     }
+
+    res.status(200).json(updatedContact);
   } catch (error) {
     console.error("Error updating contact status:", error);
-    res
-      .status(error.status || 500)
-      .json({ message: error.message || "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
