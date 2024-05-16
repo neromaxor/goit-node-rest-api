@@ -4,6 +4,7 @@ import {
 } from "../schemas/contactsSchemas.js";
 import Contact from "../models/contact.js";
 import { Types } from "mongoose";
+import Joi from "joi";
 
 export const getAllContacts = async (req, res) => {
   try {
@@ -127,7 +128,7 @@ export const updateStatusContact = async (req, res) => {
 
   try {
     if (!favorite) {
-      return res.status(400).json({ message: "Field favorite is required" });
+      return res.status(400).json({});
     }
     const updatedContact = await Contact.findByIdAndUpdate(
       contactId,
