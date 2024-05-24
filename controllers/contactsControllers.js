@@ -1,7 +1,6 @@
 import {
   createContactSchema,
   updateContactSchema,
-  updateStatusContactSchema,
 } from "../schemas/contactsSchemas.js";
 import Contact from "../models/contact.js";
 import { Types } from "mongoose";
