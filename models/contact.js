@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Schema, model } from "mongoose";
+
 const contactSchema = new mongoose.Schema(
   {
     name: {
@@ -16,12 +16,14 @@ const contactSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+    },
   },
   {
     versionKey: false,
   }
 );
 
-const Contact = model("Contact", contactSchema);
-
-export default Contact;
+export default mongoose.model("Contact", contactSchema);
