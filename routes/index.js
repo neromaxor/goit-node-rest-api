@@ -6,6 +6,6 @@ import authMiddleware from "../middleware/auth.js";
 const routes = express.Router();
 
 routes.use("/contacts", authMiddleware, contactsRoutes);
-routes.use("/user", userRoutes);
+routes.use("/user", authMiddleware, userRoutes);
 
 export default routes;
