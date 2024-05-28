@@ -43,6 +43,7 @@
     "get-intrinsic": "^1.2.4",
     "glob-parent": "^5.1.2",
     "gopd": "^1.0.1",
+    "gravatar": "^1.8.2",
     "has-flag": "^3.0.0",
     "has-property-descriptors": "^1.0.2",
     "has-proto": "^1.0.3",
