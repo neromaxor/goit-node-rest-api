@@ -4,6 +4,9 @@ import validateBody from "../helpers/validateBody.js";
 import { createUserSchema } from "../schemas/userSchemas.js";
 import authMiddleware from "../middleware/auth.js";
 import uploadMiddleware from "../middleware/upload.js";
+
+
+
 const userRouter = express.Router();
 
 userRouter.post(
