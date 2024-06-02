@@ -4,10 +4,18 @@ export const createContactSchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
   phone: Joi.string().required(),
+  favorite: Joi.boolean(),
 });
 
 export const updateContactSchema = Joi.object({
   name: Joi.string().optional(),
   email: Joi.string().email().optional(),
   phone: Joi.string().optional(),
+  favorite: Joi.boolean(),
+});
+export const updateStatusContactSchema = Joi.object({
+  favorite: Joi.boolean().required().messages({
+    "any.required": "Field favorite is required",
+    "boolean.base": "Field favorite must be a boolean",
+  }),
 });

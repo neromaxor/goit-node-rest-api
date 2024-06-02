@@ -1,18 +1,16 @@
 import {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-} from "../services/contactsServices.js";
-import { createContactSchema } from "../schemas/contactsSchemas.js";
-import HttpError from "../helpers/HttpError.js";
-import { updateContact as updateContactService } from "../services/contactsServices.js";
-import { updateContactSchema } from "../schemas/contactsSchemas.js";
+  createContactSchema,
+  updateContactSchema,
+  updateStatusContactSchema,
+} from "../schemas/contactsSchemas.js";
+import Contact from "../models/contact.js";
+import { Types } from "mongoose";
+import Joi from "joi";
 
 export const getAllContacts = async (req, res) => {
   try {
-    const contact = await listContacts();
-    res.status(200).json(contact);
+    const contacts = await Contact.find();
+    res.status(200).json(contacts);
   } catch (error) {
     console.error("Error getting all contacts:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -20,9 +18,15 @@ export const getAllContacts = async (req, res) => {
 };
 
 export const getOneContact = async (req, res) => {
+  const { id } = req.params;
+
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid _id" });
+  }
+
   try {
-    const { id } = req.params;
-    const contact = await getContactById(id);
+    const contact = await Contact.findById(id);
+
     if (contact) {
       res.status(200).json(contact);
     } else {
@@ -30,37 +34,47 @@ export const getOneContact = async (req, res) => {
     }
   } catch (error) {
     console.error("Error fetching contact by id:", error);
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const deleteContact = async (req, res) => {
-  const { id } = req.params;
   try {
-    const contact = await removeContact(id);
+    const { id } = req.params;
+    const contact = await Contact.findByIdAndDelete(id);
+
     if (contact) {
-      res.status(200).json(contact);
+      res.status(200).json({ contact });
     } else {
       res.status(404).json({ message: "Not found" });
     }
   } catch (error) {
-    console.error("Error deleting contact:", error);
+    console.log(("Error delete contact by id:", error));
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const createContact = async (req, res) => {
+  const contact = {
+    name: req.body.name,
+    email: req.body.email,
+    phone: req.body.phone,
+    favorite: req.body.favorite,
+  };
+
   try {
     const { error } = createContactSchema.validate(req.body);
+
     if (error) {
-      throw HttpError(400, error.message);
+      res.status(400).json({ message: error.message });
     }
-    const { name, email, phone } = req.body;
-    const newContact = await addContact(name, email, phone);
-    if (newContact) {
-      res.status(201).json(newContact);
+    const result = await Contact.create(contact);
+
+    if (result) {
+      res.status(201).json(result);
     } else {
-      throw HttpError(500, "Failed to add contact");
+      res.status(500).json("Failed to add contact");
     }
   } catch (error) {
     console.error("Error creating contact:", error);
@@ -71,29 +85,33 @@ export const createContact = async (req, res) => {
 };
 
 export const updateContact = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, email, phone } = req.body;
+  const { id } = req.params;
 
-    // Перевірка, чи передано хоча б одне поле
-    if (!name && !email && !phone) {
-      throw new HttpError(400, "Body must have at least one field");
+  const contact = {
+    name: req.body.name,
+    email: req.body.email,
+    phone: req.body.phone,
+    favorite: req.body.favorite,
+  };
+
+  try {
+    const { name, email, phone, favorite } = req.body;
+
+    if (!name & !email & !phone & !favorite) {
+      res.status(400).json("Body must have at least one field");
     }
 
-    // Перевірка валідності даних
     const { error } = updateContactSchema.validate(req.body);
     if (error) {
-      throw new HttpError(400, error.message);
+      res.status(400, error.message);
     }
 
-    const updatedContact = await updateContactService(id, {
-      name,
-      email,
-      phone,
+    const updatedContact = await Contact.findByIdAndUpdate(id, contact, {
+      new: true,
     });
 
     if (!updatedContact) {
-      throw new HttpError(404, "Contact not found");
+      res.status(404).json({ message: "Contact not found" });
     }
 
     res.status(200).json(updatedContact);
@@ -102,5 +120,32 @@ export const updateContact = async (req, res) => {
     res
       .status(error.status || 500)
       .json({ message: error.message || "Internal server error" });
+  }
+};
+
+export const updateStatusContact = async (req, res) => {
+  const { contactId } = req.params;
+  const { favorite } = req.body;
+
+  const { error } = updateStatusContactSchema.validate({ favorite });
+  if (error) {
+    return res.status(400).json({ message: error.message });
+  }
+
+  try {
+    const updatedContact = await Contact.findByIdAndUpdate(
+      contactId,
+      { favorite },
+      { new: true }
+    );
+
+    if (!updatedContact) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    res.status(200).json(updatedContact);
+  } catch (error) {
+    console.error("Error updating contact status:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
