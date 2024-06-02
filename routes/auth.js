@@ -22,7 +22,6 @@ userRouter.patch(
   AuthController.uploadAvatar
 );
 userRouter.get("/verify/:verificationToken", AuthController.verify);
-
 userRouter.post(
   "/verify",
   validateBody(resendVerificationEmailSchema),
