@@ -30,7 +30,7 @@ async function register(req, res, next) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const avatarURL = gravatar.url(email, { s: "200", r: "pg", d: "mm" });
-    const verifyToken = crypto.randomUUID();
+    const verificationToken = crypto.randomUUID();
 
     const newUser = await User.create({
       password: passwordHash,
@@ -44,8 +44,8 @@ async function register(req, res, next) {
       to: emailInLowerCase,
       from: "neromaxor4@gmail.com",
       subject: `Verification email`,
-      html: `To confirm your email click on the <a href="http://localhost:3000/api/users/verify/${verifyToken}">Link</a>`,
-      text: `To confirm your email open the link http://localhost:3000/api/users/verify/${verifyToken}`,
+      html: `To confirm your email click on the <a href="http://localhost:3000/api/users/verify/${verificationToken}">Link</a>`,
+      text: `To confirm your email open the link http://localhost:3000/api/users/verify/${verificationToken}`,
     });
 
     res.status(201).send({
@@ -163,7 +163,7 @@ async function verify(req, res, next) {
       return res.status(404).send({ message: "User not found" });
     }
 
-    await User.findByIdAndUpdate(user.id, {
+    await User.findByIdAndUpdate(user._id, {
       verify: true,
       verifyToken: null,
     });
@@ -174,4 +174,49 @@ async function verify(req, res, next) {
   }
 }
 
-export default { register, login, logout, current, uploadAvatar, verify };
+async function VerificationEmail(req, res, next) {
+  const { email } = req.body;
+
+  const emailInLowerCase = email.toLowerCase();
+
+  if (!email) {
+    return res.status(400).send({ message: "missing required field email" });
+  }
+  try {
+    const verificationToken = crypto.randomUUID();
+
+    const user = await User.findOneAndUpdate({ email }, { verificationToken });
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    if (user.verify) {
+      return res
+        .status(400)
+        .send({ message: "Verification has already been passed" });
+    }
+
+    await mail.sendMail({
+      to: emailInLowerCase,
+      from: "neromaxor4@gmail.com",
+      subject: `Verification email`,
+      html: `To confirm your email click on the <a href="http://localhost:3000/api/users/verify/${verificationToken}">Link</a>`,
+      text: `To confirm your email open the link http://localhost:3000/api/users/verify/${verificationToken}`,
+    });
+
+    res.status(200).send({ message: "Verification email sent" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export default {
+  register,
+  login,
+  logout,
+  current,
+  uploadAvatar,
+  verify,
+  VerificationEmail,
+};

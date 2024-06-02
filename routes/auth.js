@@ -23,4 +23,10 @@ userRouter.patch(
 );
 userRouter.get("/verify/:verificationToken", AuthController.verify);
 
+userRouter.post(
+  "verify",
+  validateBody(resendVerificationEmailSchema),
+  AuthController.VerificationEmail
+);
+
 export default userRouter;
